@@ -1,0 +1,268 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless AI-Powered Event Assistant MVP - Event Registration
+  
+Globals:
+  Function:
+    Timeout: 3
+    
+
+Parameters:
+  LogLevel:
+    Type: String
+    Default: INFO
+
+Resources:
+  AuthorizerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "apigateway.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        -
+          PolicyName: lambda-invoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: "lambda:InvokeFunction"
+                Resource: "*"
+      RoleName: apigateway-authorizer-role
+
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    DependsOn: AuthorizerRole
+    Properties:
+      Name: event-assistant-api
+      Description: "This is a test api"
+      StageName: dev
+      DefinitionUri: swagger.yaml
+
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: jwt-authorizer
+      CodeUri: auth/
+      Handler: authorizer.handler
+      Runtime: nodejs20.x
+      Timeout: 3
+      Environment:
+        Variables:
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+
+  CommonLibsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: CommonLibsLayer
+      Description: This is the common nodejs libraries used across lambdas
+      ContentUri: layers/commonlibs
+      CompatibleRuntimes:
+        - nodejs20.x
+      LicenseInfo: 'Available under the MIT-0 license.'
+      RetentionPolicy: Delete
+      
+  CommonsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: CommonsLayer
+      Description: This is the collection of commonly used functions
+      ContentUri: layers/commons/
+      CompatibleRuntimes:
+        - nodejs20.x
+      LicenseInfo: 'Available under the MIT-0 license.'
+      RetentionPolicy: Delete
+
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: events
+      AttributeDefinitions:
+        - AttributeName: eventId
+          AttributeType: S
+        - AttributeName: eventName
+          AttributeType: S
+        - AttributeName: eventDescription
+          AttributeType: S
+        - AttributeName: eventDate
+          AttributeType: S
+        - AttributeName: location
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: updatedAt
+          AttributeType: S
+        - AttributeName: registrationUrl
+          AttributeType: S
+        - AttributeName: agenda
+          AttributeType: L
+        - AttributeName: speakersInfo
+          AttributeType: L
+        - AttributeName: contactEmail
+          AttributeType: S
+        - AttributeName: sessionIds
+          AttributeType: L
+      KeySchema:
+        - AttributeName: eventId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: sessions
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+        - AttributeName: sessionName
+          AttributeType: S
+        - AttributeName: sessionDescription
+          AttributeType: S
+        - AttributeName: sessionDate
+          AttributeType: S
+        - AttributeName: sessionTime
+          AttributeType: S
+        - AttributeName: sessionLocation
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  AttendeesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: attendees
+      AttributeDefinitions:
+        - AttributeName: attendeeId
+          AttributeType: S
+        - AttributeName: eventId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: name
+          AttributeType: S
+        - AttributeName: phoneNumber
+          AttributeType: S
+        - AttributeName: credentials
+          AttributeType: M
+        - AttributeName: preferences
+          AttributeType: M
+        - AttributeName: registrationDate
+          AttributeType: S
+        - AttributeName: selectedSessions
+          AttributeType: L
+        - AttributeName: communicationOptIn
+          AttributeType: BOOL
+      KeySchema:
+        - AttributeName: attendeeId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+
+  AuthenticateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: authenticate-user
+      CodeUri: auth/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          ATTENDEES_TABLE: !Ref AttendeesTable
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AttendeesTable
+        - PolicyName: SecretsManagerGetSecretValue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:PASSWORD_SECRET*
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+      Events:
+        AuthenticateUser:
+          Type: Api
+          Properties:
+            Path: /login
+            Method: post
+            RestApiId: !Ref ServerlessRestApi
+
+  RegisterAttendeeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: register-attendee
+      CodeUri: register/
+      Handler: index.handler
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          ATTENDEES_TABLE: !Ref AttendeesTable
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AttendeesTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource:
+                - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:PASSWORD_SECRET*
+        - AmazonSESFullAccess
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+      Events:
+        RegisterAttendee:
+          Type: Api
+          Properties:
+            Path: /register
+            Method: post
+            RestApiId: !Ref ServerlessRestApi
+
+
+Outputs:
+  AttendeesTableArn:
+    Description: "Attendees Table ARN"
+    Value: !GetAtt AttendeesTable.Arn
+  EventsTableArn:
+    Description: "Events Table ARN"
+    Value: !GetAtt EventsTable.Arn
+  SessionsTableArn:
+    Description: "Sessions Table ARN"
+    Value: !GetAtt SessionsTable.Arn
+  AuthorizerRoleArn:
+    Description: "Authorizer Role ARN"
+    Value: !GetAtt AuthorizerRole.Arn
+
+
+

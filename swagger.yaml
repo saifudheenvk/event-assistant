@@ -1,0 +1,206 @@
+openapi: 3.0.0
+info:
+  title: My test api collection
+  description: Public API Specification for the myFitApp Mobile Marketing Platform
+  version: "1.0.0"
+  contact:
+    name: Saifu
+    url: 'https://saifu.com'
+    email: saifu@saifu.com
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestParameters: true
+    validateRequestBody: true
+  params-only:
+    validateRequestParameters: true
+    validateRequestBody: false
+  body-only:
+    validateRequestParameters: false
+    validateRequestBody: true
+
+paths:
+  /login:
+    post:
+      summary: Login
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - login
+        operationId: login
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:authenticate-user/invocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+  /register:
+    post:
+      summary: Register
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - register
+        operationId: register
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:register-attendee/invocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+  /products:
+    get:
+      summary: Get all products
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - products
+        operationId: get-products
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE 
+    post:
+      summary: Create a new product
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - products
+        operationId: create-product
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+    patch: 
+      summary: Update a product
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - products
+        operationId: update-product
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+    delete:
+      summary: Delete a product
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - products
+        operationId: delete-product
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '204':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+
+components:
+  securitySchemes:
+    JWTToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "JWT Token Authentication"
+      x-amazon-apigateway-authtype: oauth2
+      x-amazon-apigateway-authorizer:
+        type: token
+        identityValidationExpression: .*
+        authorizerResultTtlInSeconds: 300
+        authorizerCredentials: 'arn:aws:iam::${AWS::AccountId}:role/apigateway-authorizer-role'
+        authorizerUri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:jwt-authorizer/invocations

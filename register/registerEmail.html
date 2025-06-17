@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Registration Confirmation</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        color: #333;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      h2 {
+        color: #2e86de;
+      }
+      .details {
+        margin-top: 20px;
+        line-height: 1.6;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🎉 Congratulations on Your Registration!</h2>
+      <p>Dear <strong>{{attendeeName}}</strong>,</p>
+      <p>Thank you for registering for the event. We're excited to have you with us!</p>
+
+      <div class="details">
+        <p><strong>Name:</strong> {{attendeeName}}</p>
+        <p><strong>Email:</strong> {{attendeeEmail}}</p>
+        <p><strong>Phone Number:</strong> {{attendeePhone}}</p>
+      </div>
+
+      <p style="margin-top: 20px;">Stay tuned for more details. We look forward to seeing you at the event!</p>
+
+      <div class="footer">
+        © {{year}} Event Organizer. All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>
