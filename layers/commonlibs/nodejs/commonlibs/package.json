@@ -10,6 +10,7 @@
   "description": "",
   "dependencies": {
     "jsonwebtoken": "^9.0.2",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "velocity-template-engine": "^2.0.0"
   }
 }
