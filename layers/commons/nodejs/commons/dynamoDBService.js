@@ -118,12 +118,8 @@ async function updateItemToDb(params) {
  * @param {object} key 
  * @returns 
  */
-async function deleteItemFromDb(tableName, key) {
-    const command = new DeleteCommand({
-        TableName: tableName,
-        Key: key,
-    });
-
+async function deleteItemFromDb(params) {
+    const command = new DeleteCommand(params);
     const response = await docClient.send(command);
     logger.debug(response);
     return response;

@@ -4,7 +4,7 @@ const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 async function sendEmail(toArray, ccArray, subject, body) {
     const ses = new SESClient({ region: 'us-east-1' });
     const command = new SendEmailCommand({
-        Source: 'noreply@example.com',
+        Source: 'vksaifudheen4@gmail.com',
         Destination: {
             ToAddresses: toArray,
             CcAddresses: ccArray,

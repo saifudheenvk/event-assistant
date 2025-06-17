@@ -41,14 +41,20 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/LoginRequestBody'
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/LoginResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       security: []
       x-amazon-apigateway-auth:
         type: NONE
@@ -70,137 +76,160 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/RegisterRequestBody'
       responses:
         '201':
           description: Success
           content:
             application/json:
               schema:
-                type: object
-      security: []
-      x-amazon-apigateway-auth:
-        type: NONE
-  /products:
-    get:
-      summary: Get all products
-      x-amazon-apigateway-request-validator: all
-      x-amazon-apigateway-integration:
-        type: aws_proxy
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        tags:
-          - products
-        operationId: get-products
-        uri: >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
-      responses:
-        '200':
-          description: Success
+                $ref: '#/components/schemas/LoginResponse'
+        '500':
+          description: Internal Server Error
           content:
             application/json:
               schema:
-                type: object
-      security: []
-      x-amazon-apigateway-auth:
-        type: NONE 
-    post:
-      summary: Create a new product
-      x-amazon-apigateway-request-validator: all
-      x-amazon-apigateway-integration:
-        type: aws_proxy
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        tags:
-          - products
-        operationId: create-product
-        uri: >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-      security: []
-      x-amazon-apigateway-auth:
-        type: NONE
-    patch: 
-      summary: Update a product
-      x-amazon-apigateway-request-validator: all
-      x-amazon-apigateway-integration:
-        type: aws_proxy
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        tags:
-          - products
-        operationId: update-product
-        uri: >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-      security: []
-      x-amazon-apigateway-auth:
-        type: NONE
-    delete:
-      summary: Delete a product
-      x-amazon-apigateway-request-validator: all
-      x-amazon-apigateway-integration:
-        type: aws_proxy
-        passthroughBehavior: when_no_match
-        httpMethod: POST
-        tags:
-          - products
-        operationId: delete-product
-        uri: >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:test-function/invocations
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '204':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
+                $ref: '#/components/schemas/ErrorResponse'
       security: []
       x-amazon-apigateway-auth:
         type: NONE
 
+  /sessions/{sessionId}/book:
+    post:
+      summary: Book a session
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        tags:
+          - sessions
+        operationId: bookSession
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:book-session/invocations
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookSessionResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - JWTToken: []
+  /sessions/{sessionId}/cancel:
+    delete:
+      summary: Cancel a session
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: DELETE
+        tags:
+          - sessions
+        operationId: cancelSession
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cancel-session/invocations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelSessionResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - JWTToken: []
+
+
 components:
   securitySchemes:
     JWTToken:
-      type: apiKey
-      in: header
-      name: Authorization
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
       description: "JWT Token Authentication"
-      x-amazon-apigateway-authtype: oauth2
+      x-amazon-apigateway-authtype: cognito_user_pools
       x-amazon-apigateway-authorizer:
-        type: token
-        identityValidationExpression: .*
-        authorizerResultTtlInSeconds: 300
-        authorizerCredentials: 'arn:aws:iam::${AWS::AccountId}:role/apigateway-authorizer-role'
-        authorizerUri: >-
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:jwt-authorizer/invocations
+        type: cognito_user_pools
+        providerARNs:
+          - arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/us-east-1_m9KnTEHHl
+
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: number
+        requestId:
+          type: string
+    BookSessionResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        sessionRegistration:
+          type: object
+    CancelSessionResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        id:
+          type: string
+        eventId:
+          type: string
+    RegisterRequestBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+        phoneNumber:
+          type: string
+        preferences:
+          type: object
+        communicationOptIn:
+          type: boolean
+        eventId:
+          type: string
+    LoginRequestBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        eventId:
+          type: string
