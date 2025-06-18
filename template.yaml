@@ -17,6 +17,18 @@ Parameters:
   UserPoolClientId:
     Type: String
     Default: "2evg82jv37qsjqsqe11ie187ij"
+  GitHubOwner:
+    Type: String
+    Default: "saifudheenvk"
+  GitHubRepo:
+    Type: String
+    Default: "event-assistant"
+  GitHubBranch:
+    Type: String
+    Default: "master"
+  GitHubToken:
+    Type: String
+    Default: "ghp_1234567890"
 
 Resources:
   ServerlessRestApi:
@@ -82,11 +94,22 @@ Resources:
           AttributeType: S
         - AttributeName: eventId
           AttributeType: S
+        - AttributeName: speakerId
+          AttributeType: S
       KeySchema:
         - AttributeName: sessionId
           KeyType: HASH
         - AttributeName: eventId
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: eventId-index
+          KeySchema:
+            - AttributeName: eventId
+              KeyType: HASH
+            - AttributeName: speakerId
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
 
   AttendeesTable:
@@ -279,6 +302,212 @@ Resources:
             Method: delete
             RestApiId: !Ref ServerlessRestApi
 
+  GetEventDetailsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: get-event-details
+      CodeUri: event-details/
+      Handler: index.getEventDetails
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          EVENTS_TABLE: !Ref EventsTable
+          SESSIONS_TABLE: !Ref SessionsTable
+          SPEAKERS_TABLE: !Ref SpeakersTable
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SpeakersTable
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+      Events:
+        GetEventDetails:
+          Type: Api
+          Properties:
+            Path: /events/{eventId}
+            Method: get
+            RestApiId: !Ref ServerlessRestApi
+
+
+#Deployment Pipeline
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      PipelineName: event-assistant-pipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: '1'
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: SourceOutput
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::my-pipeline-artifacts-bucket-saifu/*'
+                  - 'arn:aws:s3:::my-pipeline-artifacts-bucket-saifu'
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - iam:PassRole
+                Resource:
+                  - !GetAtt CodeBuildProject.Arn
+                  - !Sub 'arn:aws:cloudformation:${AWS::Region}:597088052511:stack/event-assistant-stack/*'
+                  - !GetAtt CodeBuildServiceRole.Arn
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: event-assistant-codebuild
+      Description: "This is the codebuild for the event assistant"
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:6.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref AWS::AccountId
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yaml
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - 'arn:aws:s3:::my-pipeline-artifacts-bucket-saifu/*'
+                  - 'arn:aws:s3:::my-pipeline-artifacts-bucket-saifu'
+                  - 'arn:aws:s3:::saifu-codesam/*'
+                  - 'arn:aws:s3:::saifu-codesam'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:DescribeTable
+                Resource:
+                  - !GetAtt EventsTable.Arn
+                  - !GetAtt SessionsTable.Arn
+                  - !GetAtt SpeakersTable.Arn
+                  - !GetAtt SessionRegistrationsTable.Arn
+                  - !GetAtt AttendeesTable.Arn
+              - Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:InvokeFunction
+                  - lambda:CreateFunction
+                Resource:
+                  - !GetAtt AuthenticateUserFunction.Arn
+                  - !GetAtt RegisterAttendeeFunction.Arn
+                  - !GetAtt BookSessionFunction.Arn
+                  - !GetAtt CancelSessionFunction.Arn
+                  - !GetAtt GetEventDetailsFunction.Arn
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - kms:Decrypt
+                Resource:
+                  - 'arn:aws:secretsmanager:us-east-1:597088052511:secret:GithubToken-SoLOTi'
+                  - 'arn:aws:kms:us-east-1:597088052511:key/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:CreateLogGroup
+                Resource:
+                  - 'arn:aws:logs:*:*:*'
+              - Effect: Allow
+                Action:
+                  - codebuild:*
+                  - iam:*
+                  - apigateway:*
+                  - cloudformation:*
+                  - cloudwatch:*
+                  - events:*
+                  - codepipeline:*
+                Resource: "*"
+
 Outputs:
   AttendeesTableArn:
     Description: "Attendees Table ARN"
@@ -289,6 +518,22 @@ Outputs:
   SessionsTableArn:
     Description: "Sessions Table ARN"
     Value: !GetAtt SessionsTable.Arn
+  SpeakersTableArn:
+    Description: "Speakers Table ARN"
+    Value: !GetAtt SpeakersTable.Arn
+  SessionRegistrationsTableArn:
+    Description: "Session Registrations Table ARN"
+    Value: !GetAtt SessionRegistrationsTable.Arn
+  CodePipelineRoleArn:
+    Description: "Code Pipeline Role ARN"
+    Value: !GetAtt CodePipelineRole.Arn
+  CodeBuildProjectArn:
+    Description: "Code Build Project ARN"
+    Value: !GetAtt CodeBuildProject.Arn
+  CodeBuildServiceRoleArn:
+    Description: "Code Build Service Role ARN"
+    Value: !GetAtt CodeBuildServiceRole.Arn
+
 
 
 

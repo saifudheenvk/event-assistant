@@ -156,7 +156,34 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - JWTToken: []
-
+  /events/{eventId}:
+    get:
+      summary: Get event details
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: GET
+        tags:
+          - events
+        operationId: getEventDetails
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:get-event-details/invocations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetailsResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - JWTToken: []
 
 components:
   securitySchemes:
@@ -233,3 +260,33 @@ components:
           type: string
         eventId:
           type: string
+    SessionDetails:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        sessionName:
+          type: string
+        speaker:
+          type: object
+        sessionDescription:
+          type: string
+        sessionDate:
+          type: string
+        sessionLocation:
+          type: string
+        sessionType:
+          type: string
+        capacity:
+          type: number
+        bookedSeats:
+          type: number
+    EventDetailsResponse:
+      type: object
+      properties:
+        eventDetails:
+          type: object
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionDetails'

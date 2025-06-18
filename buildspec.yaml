@@ -1,0 +1,43 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    GITHUB_OWNER: saifudheenvk
+    GITHUB_REPO: sam-codepipeline-test
+    GITHUB_BRANCH: master
+    GITHUB_TOKEN_ARN: arn:aws:secretsmanager:us-east-1:597088052511:secret:GithubToken-SoLOTi
+  secrets-manager:
+    GITHUB_TOKEN: "GithubToken:GITHUB_TOKEN"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+      nodejs: 20
+    commands:
+      - echo "Installing node dependencies..."
+      - ./scripts/npm-install.sh
+      - echo "Upgrading pip..."
+      - pip install --upgrade pip
+      - echo "Installing AWS SAM CLI via pip..."
+      - pip install aws-sam-cli
+  pre_build:
+    commands:
+      - echo "Verifying AWS SAM CLI installation..."
+      - sam --version
+  build:
+    commands:
+      - echo "Building the application..."
+      - sam build
+      - echo "Packaging the application..."
+      - sam package --output-template-file packaged.yaml --s3-bucket saifu-codesam
+  post_build:
+    commands:
+      - echo "Deploying application..."
+      - sam deploy --stack-name test-stack --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM --region $AWS_REGION --parameter-overrides GitHubOwner=$GITHUB_OWNER GitHubRepo=$GITHUB_REPO GitHubBranch=$GITHUB_BRANCH GitHubToken=$GITHUB_TOKEN  --no-confirm-changeset
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: yes
