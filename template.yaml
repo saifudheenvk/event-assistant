@@ -546,6 +546,10 @@ Resources:
                   - lambda:UpdateFunctionCode
                   - lambda:InvokeFunction
                   - lambda:CreateFunction
+                  - lambda:PublishLayerVersion
+                  - lambda:GetLayerVersion
+                  - lambda:ListLayerVersions
+                  - lambda:DeleteLayerVersion
                 Resource:
                   - !GetAtt AuthenticateUserFunction.Arn
                   - !GetAtt RegisterAttendeeFunction.Arn
@@ -554,6 +558,8 @@ Resources:
                   - !GetAtt GetEventDetailsFunction.Arn
                   - !GetAtt GetSessionDetailsFunction.Arn
                   - !GetAtt GetCurrentAttendeeFunction.Arn
+                  - !GetAtt CommonLibsLayer.Arn
+                  - !GetAtt CommonsLayer.Arn
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
