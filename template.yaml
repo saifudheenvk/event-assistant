@@ -543,13 +543,7 @@ Resources:
                   - !GetAtt AttendeesTable.Arn
               - Effect: Allow
                 Action:
-                  - lambda:UpdateFunctionCode
-                  - lambda:InvokeFunction
-                  - lambda:CreateFunction
-                  - lambda:PublishLayerVersion
-                  - lambda:GetLayerVersion
-                  - lambda:ListLayerVersions
-                  - lambda:DeleteLayerVersion
+                  - lambda:*
                 Resource:
                   - !GetAtt AuthenticateUserFunction.Arn
                   - !GetAtt RegisterAttendeeFunction.Arn
