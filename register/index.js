@@ -18,6 +18,7 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.RE
 
 exports.handler = async (event) => {
   try {
+    const requestId = event.requestContext.requestId;
     const { email, password, name, phoneNumber, preferences, communicationOptIn, eventId } = JSON.parse(event.body);
     logger.info(`Registering user with email: ${email} with cognito`);
     const attendeeId = uuidv4();
@@ -49,8 +50,8 @@ exports.handler = async (event) => {
 
     if (attendee.error) {
       logger.error(`Error registering attendee: ${attendee.error}`);
-      return createErrorResponse(STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Failed to register attendee");
-    }
+        return createErrorResponse(requestId, STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Failed to register attendee");
+      }
 
 
     let mergeDataForVelocityTemplateEngine = {
@@ -82,6 +83,6 @@ exports.handler = async (event) => {
     }, STATUS_CODES.CREATED);
   } catch (error) {
     logger.error(`Error registering user: ${error}`);
-    return createErrorResponse(STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Failed to register user");
+    return createErrorResponse(requestId, STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "Failed to register user");
   }
 };

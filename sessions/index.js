@@ -5,6 +5,7 @@ const { STATUS_CODES } = require("/opt/nodejs/commons/constants");
 
 exports.bookSession = async (event) => {
     try {
+        const requestId = event.requestContext.requestId;
         const claims = event.requestContext.authorizer.claims;
         const { sessionId } = event.pathParameters;
         const { eventId } = claims['custom:eventId'];
@@ -12,11 +13,11 @@ exports.bookSession = async (event) => {
 
         const sessionResult = await getItemFromDb(process.env.SESSIONS_TABLE, { sessionId: sessionId });
         if (!sessionResult) {
-            return createErrorResponse(STATUS_CODES.BAD_REQUEST, "BAD_REQUEST", "Session Id is invalid");
+            return createErrorResponse(requestId, STATUS_CODES.BAD_REQUEST, "BAD_REQUEST", "Session Id is invalid");
         }
         const session = sessionResult.Item;
         if(session.capacity <= session.bookedSeats || session.sessionDate < new Date().toISOString()) {
-            return createErrorResponse(STATUS_CODES.BAD_REQUEST, "BAD_REQUEST", "Session is full or has passed");
+            return createErrorResponse(requestId, STATUS_CODES.BAD_REQUEST, "BAD_REQUEST", "Session is full or has passed");
         }
 
         const registrationItem = {
@@ -61,12 +62,13 @@ exports.bookSession = async (event) => {
     } catch (error) {
         logger.error(error);
         const errorMessage = error.name === "TransactionCanceledException" ? "Session is full or has passed" : error.message;
-        return createErrorResponse(STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", errorMessage);
+        return createErrorResponse(requestId, STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", errorMessage);
     }
 };
 
 exports.cancelSession = async (event) => {
     try {
+        const requestId = event.requestContext.requestId;
         const claims = event.requestContext.authorizer.claims;
         const { sessionId } = event.pathParameters;
         const attendeeId = claims.sub;
@@ -97,6 +99,31 @@ exports.cancelSession = async (event) => {
     } catch (error) {
         logger.error(error);
         const errorMessage = error.name === "TransactionCanceledException" ? "Session is not registered" : error.message;
-        return createErrorResponse(STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", errorMessage);
+        return createErrorResponse(requestId, STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", errorMessage);
     }
 };
+
+
+exports.getSessionDetails = async (event) => {
+    try {
+        const requestId = event.requestContext.requestId;
+        const { sessionId } = event.pathParameters;
+        const sessionResult = await getItemFromDb(process.env.SESSIONS_TABLE, { sessionId: sessionId });
+        if (!sessionResult) {
+            return createErrorResponse(requestId, STATUS_CODES.BAD_REQUEST, "BAD_REQUEST", "Session Id is invalid");
+        }
+        const session = sessionResult.Item;
+        const speakerResult = await getItemFromDb(process.env.SPEAKERS_TABLE, { speakerId: session.speakerId });
+        const speaker = speakerResult.Item;
+        const sessionRegistrationResult = await getItemFromDb(process.env.SESSION_REGISTRATIONS_TABLE, { sessionId: sessionId, attendeeId: attendeeId });
+        const isBooked = sessionRegistrationResult.Item ? true : false;
+        return createSuccessResponse({
+            ...session,
+            speaker: speaker,
+            isBooked: isBooked
+        }, STATUS_CODES.OK);
+    } catch (error) {
+        logger.error(error);
+        return createErrorResponse(requestId, STATUS_CODES.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", error.message);
+    }
+}

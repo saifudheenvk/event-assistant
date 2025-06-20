@@ -1,10 +1,15 @@
-# More information about the configuration file can be found here:
-# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
 version = 0.1
 
 [default]
 [default.global.parameters]
 stack_name = "event-assistant"
+s3_bucket = "saifu-codesam"
+s3_prefix = "sam-app-artifacts"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+github_owner = "saifudheenvk"
+github_branch = "master"
 
 [default.build.parameters]
 cached = true
@@ -16,10 +21,8 @@ lint = true
 [default.deploy.parameters]
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
-resolve_s3 = true
+stack_name = "event-assistant"
 
-[default.package.parameters]
-resolve_s3 = true
 
 [default.sync.parameters]
 watch = true

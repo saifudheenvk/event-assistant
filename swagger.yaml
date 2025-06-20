@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: My test api collection
+  title: event-assistant-api
   description: Public API Specification for the myFitApp Mobile Marketing Platform
   version: "1.0.0"
   contact:
@@ -21,6 +21,90 @@ x-amazon-apigateway-request-validators:
   body-only:
     validateRequestParameters: false
     validateRequestBody: true
+
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Methods: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+    responseTemplates:
+      application/json: '{"message":$context.error.messageString}'
+  BAD_REQUEST_BODY:
+    statusCode: 400
+    responseTemplates:
+      application/json: |-
+        {
+            "statusCode": 400,
+            "code": "InvalidRequestBody",
+            "message": "The submitted request body does not match the schema specification for this request. Please check if all mandatory fields are passed in the request body",
+            "requestId": "$context.requestId"
+        }
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Methods: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+  BAD_REQUEST_PARAMETERS:
+    statusCode: 400
+    responseTemplates:
+      application/json: |-
+        {
+            "statusCode": 400,
+            "code": "InvalidRequestParameters",
+            "message": $context.error.messageString,
+            "requestId": "$context.requestId"
+        }
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Methods: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+  REQUEST_TOO_LARGE:
+    statusCode: 413
+    responseTemplates:
+      application/json: |-
+        {
+            "statusCode": 413,
+            "code": "RequestTooLarge",
+            "message": "The submitted request body is too large",
+            "requestId": "$context.requestId"
+        }
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Methods: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+  UNAUTHORIZED:
+    statusCode: 401
+    responseTemplates:
+      application/json: |-
+        {
+            "statusCode": 401,
+            "code": "UnauthorizedError",
+            "message": $context.error.messageString,
+            "requestId": "$context.requestId"
+        }
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Methods: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+
+x-amazon-apigateway-cors:
+  allowOrigins:
+    - '*'
+  allowMethods:
+    - DELETE
+    - GET
+    - HEAD
+    - PATCH
+    - POST
+    - PUT
+    - OPTIONS
+  allowHeaders:
+    - Content-Type
+    - Authorization
+    - X-Amz-Date
+    - X-Api-Key
+    - X-Amz-Security-Token
+  allowCredentials: false
+  maxAge: 3600
 
 paths:
   /login:
@@ -49,6 +133,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -58,6 +154,32 @@ paths:
       security: []
       x-amazon-apigateway-auth:
         type: NONE
+    options:
+      summary: CORS support
+      responses:
+        '200':
+          description: Default CORS response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
   /register:
     post:
       summary: Register
@@ -84,6 +206,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -93,6 +227,32 @@ paths:
       security: []
       x-amazon-apigateway-auth:
         type: NONE
+    options:
+      summary: CORS support
+      responses:
+        '200':
+          description: Default CORS response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
 
   /sessions/{sessionId}/book:
     post:
@@ -128,6 +288,32 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - JWTToken: []
+    options:
+      summary: CORS support
+      responses:
+        '200':
+          description: Default CORS response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
   /sessions/{sessionId}/cancel:
     delete:
       summary: Cancel a session
@@ -148,6 +334,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CancelSessionResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -156,6 +348,32 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - JWTToken: []
+    options:
+      summary: CORS support
+      responses:
+        '200':
+          description: Default CORS response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
   /events/{eventId}:
     get:
       summary: Get event details
@@ -176,6 +394,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventDetailsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+      x-amazon-apigateway-auth:
+        type: NONE
+  /sessions/{sessionId}:
+    get:
+      summary: Get session details
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: GET
+        tags:
+          - sessions
+        operationId: getSessionDetails
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:get-session-details/invocations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetails'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
           content:
@@ -184,6 +443,92 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - JWTToken: []
+    options:
+      summary: CORS support
+      responses:
+        '200':
+          description: Default CORS response
+          headers:
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: 200
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+  /attendees/current:
+    get:
+      summary: Get current attendee
+      x-amazon-apigateway-request-validator: all
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        passthroughBehavior: when_no_match
+        httpMethod: GET
+        tags:
+          - attendees
+        operationId: getCurrentAttendee
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:get-current-attendee/invocations
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendeeDetails'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - JWTToken: []
+    options:
+        summary: CORS support
+        responses:
+          '200':
+            description: Default CORS response
+            headers:
+              Access-Control-Allow-Origin:
+                schema:
+                  type: string
+              Access-Control-Allow-Methods:
+                schema:
+                  type: string
+              Access-Control-Allow-Headers:
+                schema:
+                  type: string
+        x-amazon-apigateway-integration:
+          type: mock
+          requestTemplates:
+            application/json: '{"statusCode": 200}'
+          responses:
+            default:
+              statusCode: 200
+              responseParameters:
+                method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+                method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET,DELETE'"
+                method.response.header.Access-Control-Allow-Origin: "'*'"
 
 components:
   securitySchemes:
@@ -197,7 +542,6 @@ components:
         type: cognito_user_pools
         providerARNs:
           - arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/us-east-1_m9KnTEHHl
-
 
   schemas:
     ErrorResponse:
@@ -260,6 +604,15 @@ components:
           type: string
         eventId:
           type: string
+    SpeakerDetails:
+      type: object
+      properties:
+        speakerId:
+          type: string
+        speakerName:
+          type: string
+        speakerBio:
+          type: string
     SessionDetails:
       type: object
       properties:
@@ -268,25 +621,66 @@ components:
         sessionName:
           type: string
         speaker:
-          type: object
+          $ref: '#/components/schemas/SpeakerDetails'
         sessionDescription:
           type: string
         sessionDate:
-          type: string
-        sessionLocation:
-          type: string
-        sessionType:
           type: string
         capacity:
           type: number
         bookedSeats:
           type: number
+        isBooked:
+          type: boolean
+    AgendaItem:
+      type: object
+      properties:
+        time:
+          type: string
+        topic:
+          type: string
+    EventDetails:
+      type: object
+      properties:
+        eventId:
+          type: string
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+        eventDate:
+          type: string
+        eventLocation:
+          type: string
+        contactEmail:
+          type: string
+        agenda:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaItem'
     EventDetailsResponse:
       type: object
       properties:
         eventDetails:
-          type: object
+          $ref: '#/components/schemas/EventDetails'
         sessions:
           type: array
           items:
             $ref: '#/components/schemas/SessionDetails'
+    AttendeeDetails:
+      type: object
+      properties:
+        attendeeId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        preferences:
+          type: object
+        communicationOptIn:
+          type: boolean
+        eventId:
+          type: string

@@ -6,9 +6,8 @@ env:
     GITHUB_OWNER: saifudheenvk
     GITHUB_REPO: sam-codepipeline-test
     GITHUB_BRANCH: master
-    GITHUB_TOKEN_ARN: arn:aws:secretsmanager:us-east-1:597088052511:secret:GithubToken-SoLOTi
   secrets-manager:
-    GITHUB_TOKEN: "GithubToken:GITHUB_TOKEN"
+    GITHUB_TOKEN: "EventAssistant:GITHUB_TOKEN"
 
 phases:
   install:
@@ -35,7 +34,7 @@ phases:
   post_build:
     commands:
       - echo "Deploying application..."
-      - sam deploy --stack-name test-stack --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM --region $AWS_REGION --parameter-overrides GitHubOwner=$GITHUB_OWNER GitHubRepo=$GITHUB_REPO GitHubBranch=$GITHUB_BRANCH GitHubToken=$GITHUB_TOKEN  --no-confirm-changeset
+      - sam deploy --no-fail-on-empty-changeset --capabilities CAPABILITY_IAM --region $AWS_REGION --parameter-overrides GitHubOwner=$GITHUB_OWNER GitHubRepo=$GITHUB_REPO GitHubBranch=$GITHUB_BRANCH GitHubToken=$GITHUB_TOKEN  --no-confirm-changeset
 
 artifacts:
   files:

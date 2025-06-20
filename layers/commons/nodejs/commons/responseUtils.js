@@ -20,8 +20,10 @@ function createSuccessResponse(responseBody, statusCode, headers) {
         "statusCode": statusCode ? statusCode : STATUS_CODES.OK,
         "headers": {
             "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,PATCH,POST,PUT,OPTIONS",
             "cache-control": "max-age=0"
-        }
+            }
     };
     response.headers = {...response.headers, ...headers};
     return response;
@@ -36,7 +38,6 @@ function ErrorResponse(requestId,  statusCode, code, message) {
 ErrorResponse.prototype = new Error();
 
 function createErrorResponse(requestId, statusCode, code, message, extraInfo, headers) {
-    //logger.error("Sending error response to user");
     let error = new ErrorResponse(requestId, statusCode, code, message);
     if (extraInfo) {
         delete extraInfo.knownError;
@@ -49,8 +50,10 @@ function createErrorResponse(requestId, statusCode, code, message, extraInfo, he
                 error.statusCode : STATUS_CODES.NOT_FOUND,
         "headers": {
             "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "DELETE,GET,HEAD,PATCH,POST,PUT,OPTIONS",
             "cache-control": "max-age=0"
-        },
+          }
     };
     if(headers)
         returnData.headers = {...returnData.headers, ...headers};

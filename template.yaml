@@ -5,6 +5,8 @@ Description: Serverless AI-Powered Event Assistant MVP - Event Registration
 Globals:
   Function:
     Timeout: 3
+  Api:
+      OpenApiVersion: '3.0.0'
     
 
 Parameters:
@@ -29,6 +31,9 @@ Parameters:
   GitHubToken:
     Type: String
     Default: "ghp_1234567890"
+  ArtifactBucket:
+    Type: String
+    Default: "my-pipeline-artifacts-bucket-saifu"
 
 Resources:
   ServerlessRestApi:
@@ -38,6 +43,9 @@ Resources:
       Description: "This is a test api"
       StageName: dev
       DefinitionUri: swagger.yaml
+      Tags:
+        Name: event-assistant-api
+        Environment: dev
 
   CommonLibsLayer:
     Type: AWS::Serverless::LayerVersion
@@ -302,6 +310,38 @@ Resources:
             Method: delete
             RestApiId: !Ref ServerlessRestApi
 
+  GetSessionDetailsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: get-session-details
+      CodeUri: sessions/
+      Handler: index.getSessionDetails
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          SESSIONS_TABLE: !Ref SessionsTable
+          SPEAKERS_TABLE: !Ref SpeakersTable
+          SESSION_REGISTRATIONS_TABLE: !Ref SessionRegistrationsTable
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SpeakersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionRegistrationsTable
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+      Events:
+        GetSessionDetails:
+          Type: Api
+          Properties:
+            Path: /sessions/{sessionId}
+            Method: get
+            RestApiId: !Ref ServerlessRestApi
+
   GetEventDetailsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -334,12 +374,41 @@ Resources:
             Method: get
             RestApiId: !Ref ServerlessRestApi
 
+  GetCurrentAttendeeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: get-current-attendee
+      CodeUri: event-details/
+      Handler: index.getCurrentAttendee
+      Runtime: nodejs20.x
+      Environment:
+        Variables:
+          ATTENDEES_TABLE: !Ref AttendeesTable
+          logLevel: !Ref LogLevel
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AttendeesTable
+      Layers:
+        - !Ref CommonLibsLayer
+        - !Ref CommonsLayer
+      Events:
+        GetCurrentAttendee:
+          Type: Api
+          Properties:
+            Path: /attendees/current
+            Method: get
+            RestApiId: !Ref ServerlessRestApi
+
 
 #Deployment Pipeline
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      PipelineName: event-assistant-pipeline
+      Name: event-assistant-pipeline
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
       RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
         - Name: Source
@@ -483,12 +552,14 @@ Resources:
                   - !GetAtt BookSessionFunction.Arn
                   - !GetAtt CancelSessionFunction.Arn
                   - !GetAtt GetEventDetailsFunction.Arn
+                  - !GetAtt GetSessionDetailsFunction.Arn
+                  - !GetAtt GetCurrentAttendeeFunction.Arn
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
                   - kms:Decrypt
                 Resource:
-                  - 'arn:aws:secretsmanager:us-east-1:597088052511:secret:GithubToken-SoLOTi'
+                  - 'arn:aws:secretsmanager:us-east-1:597088052511:secret:EventAssistant-y4FTxG'
                   - 'arn:aws:kms:us-east-1:597088052511:key/*'
               - Effect: Allow
                 Action:
@@ -533,6 +604,9 @@ Outputs:
   CodeBuildServiceRoleArn:
     Description: "Code Build Service Role ARN"
     Value: !GetAtt CodeBuildServiceRole.Arn
+  PipelineUrl:
+    Description: "Pipeline URL"
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/codesuite/codepipeline/pipelines/${CodePipeline}/view?region=${AWS::Region}"
 
 
 
