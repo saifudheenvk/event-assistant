@@ -10,6 +10,7 @@ confirm_changeset = false
 capabilities = "CAPABILITY_IAM"
 github_owner = "saifudheenvk"
 github_branch = "master"
+github_repo = "event-assistant"
 
 [default.build.parameters]
 cached = true

@@ -4,7 +4,7 @@ env:
   variables:
     AWS_REGION: us-east-1
     GITHUB_OWNER: saifudheenvk
-    GITHUB_REPO: sam-codepipeline-test
+    GITHUB_REPO: event-assistant
     GITHUB_BRANCH: master
   secrets-manager:
     GITHUB_TOKEN: "EventAssistant:GITHUB_TOKEN"
