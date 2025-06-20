@@ -558,8 +558,8 @@ Resources:
                   - !GetAtt GetEventDetailsFunction.Arn
                   - !GetAtt GetSessionDetailsFunction.Arn
                   - !GetAtt GetCurrentAttendeeFunction.Arn
-                  - !GetAtt CommonLibsLayer.Arn
-                  - !GetAtt CommonsLayer.Arn
+                  - !Ref CommonLibsLayer
+                  - !Ref CommonsLayer
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
@@ -610,6 +610,12 @@ Outputs:
   CodeBuildServiceRoleArn:
     Description: "Code Build Service Role ARN"
     Value: !GetAtt CodeBuildServiceRole.Arn
+  CommonLibsLayerArn:
+    Description: "Libs Layer Arn"
+    Value: !Ref CommonLibsLayer
+  CommonsLayerArn:
+    Description: "Commons Layer Arn"
+    Value: !Ref CommonsLayer
   PipelineUrl:
     Description: "Pipeline URL"
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/codesuite/codepipeline/pipelines/${CodePipeline}/view?region=${AWS::Region}"
